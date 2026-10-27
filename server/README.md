@@ -20,7 +20,7 @@ The server connects to MongoDB before listening for HTTP requests. Missing confi
 
 Both `pnpm dev` and `pnpm start` load `.env` using Node.js's built-in environment file support. Restart the server after changing `.env`. Environment variables already set by your shell or hosting provider take precedence, and a missing `.env` is allowed. Keep real credentials in the ignored `.env`; commit only the empty example.
 
-The server defaults to port 3001. Set `PORT` to override it. There are no routes yet, so HTTP requests return Express's default 404 response.
+The server defaults to port 3001. Set `PORT` to override it. `GET /health` returns HTTP 200 with `{"status":"ok"}` to confirm the HTTP server is responding. This is a liveness check; it does not check current MongoDB connectivity. Other routes return Express's default 404 response.
 
 ## Checks and production startup
 
