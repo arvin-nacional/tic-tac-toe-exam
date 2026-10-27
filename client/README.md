@@ -24,11 +24,13 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 The home page displays completed sessions with player names, round counts, completion times in UTC, and server-calculated wins, losses, and draws. It includes loading, empty, and retryable error states.
 
-Start New Game opens a two-player name form. It rejects blank or whitespace-only names, trims names before sending `POST /api/sessions`, disables submission while pending, and preserves names for retry after a failure. Cancel closes the form without creating a session. On success, it displays the player assignments returned by Express. The playable board and resuming an active session after a page reload are not implemented yet; session creation is persisted by the backend.
+Start New Game opens a two-player name form. It rejects blank or whitespace-only names, trims names before sending `POST /api/sessions`, disables submission while pending, and preserves names for retry after a failure. Cancel closes the form without creating a session. On success, the board loads `GET /api/sessions/:id` and displays the server's current round and turn.
+
+Clicking an empty cell sends `POST /api/sessions/:id/moves`, then retrieves fresh session state. The client does not calculate winners or update the board optimistically. Occupied cells, finished rounds, completed sessions, and pending requests disable moves. Failed or uncertain updates lock the board until Refresh game retrieves authoritative state; refresh never resends the move. Continue/Stop controls and resuming an active session after a full page reload are not implemented yet; games are persisted by the backend.
 
 Run the Express backend using the instructions in [server/README.md](../server/README.md). The client defaults to `http://localhost:3001` for its backend. To override it, copy [.env.example](.env.example) to `.env.local` (without overwriting an existing file) and set `API_BASE_URL` to the backend origin, without `/api` at the end.
 
-[next.config.ts](next.config.ts) forwards `/api/sessions` requests and their query strings to Express. The browser uses the Next.js origin, avoiding cross-origin browser requests. Express remains responsible for the API and database; no Server Actions or duplicate API handlers are added. Restart Next.js after changing the environment variable. Set `API_BASE_URL` to the HTTPS Render backend URL before building on Vercel; changing it requires a rebuild/redeploy.
+[next.config.ts](next.config.ts) forwards `/api/sessions` and its nested paths and query strings to Express. The browser uses the Next.js origin, avoiding cross-origin browser requests. Express remains responsible for the API and database; no Server Actions or duplicate API handlers are added. Restart Next.js after changing the environment variable. Set `API_BASE_URL` to the HTTPS Render backend URL before building on Vercel; changing it requires a rebuild/redeploy.
 
 ## Tests and checks
 

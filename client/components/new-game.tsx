@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { createSession, type CreatedSession } from "@/lib/api/sessions";
+import GameBoard from "@/components/game-board";
 
 export default function NewGame() {
   const [open, setOpen] = useState(false);
@@ -34,12 +35,7 @@ export default function NewGame() {
   }
 
   if (session) {
-    return (
-      <section className="mb-8 rounded-xl border border-zinc-200 p-6 dark:border-zinc-800" aria-labelledby="new-session-heading">
-        <h2 id="new-session-heading" className="break-words text-2xl font-semibold">{session.players.X.name} vs {session.players.O.name}</h2>
-        <p role="status" className="mt-3">Game created. {session.players.X.name} plays X and goes first. {session.players.O.name} plays O.</p>
-      </section>
-    );
+    return <GameBoard key={session._id} sessionId={session._id} />;
   }
 
   if (!open) {

@@ -7,6 +7,10 @@ const session = { _id: "session-1", players: { X: { name: "Arvin" }, O: { name: 
 beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [] });
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({
+    ...session, status: "active", rounds: [{ result: null }],
+    currentRound: { number: 1, board: Array(9).fill(null), currentPlayer: "X", status: "in_progress" },
+  }) });
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -55,7 +59,8 @@ test("submits trimmed names once and displays server-confirmed players", async (
   });
   await act(async () => resolveRequest({ ok: true, json: async () => session }));
   expect(await screen.findByRole("heading", { name: "Arvin vs Sam" })).toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent("Game created. Arvin plays X and goes first. Sam plays O.");
+  expect(screen.getByRole("status")).toHaveTextContent("Arvin's turn (X)");
+  expect(screen.getAllByRole("button", { name: /Row/ })).toHaveLength(9);
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
 });
 

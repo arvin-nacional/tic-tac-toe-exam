@@ -1,5 +1,31 @@
 type PlayerStatistics = { wins: number; losses: number; draws: number };
 
+export type PlayerMark = "X" | "O";
+export type GameSession = CreatedSession & {
+  status: "active" | "completed";
+  rounds: { result: PlayerMark | "draw" | null }[];
+  currentRound: {
+    number: number;
+    board: (PlayerMark | null)[];
+    currentPlayer: PlayerMark | null;
+    status: "in_progress" | "finished";
+  };
+};
+
+export async function getSession(id: string, signal: AbortSignal): Promise<GameSession> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(id)}`, { cache: "no-store", signal });
+  if (!response.ok) throw new Error("Unable to load game.");
+  return response.json();
+}
+
+export async function submitMove(id: string, player: PlayerMark, cellIndex: number, signal: AbortSignal): Promise<void> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(id)}/moves`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player, cellIndex }), signal,
+  });
+  if (!response.ok) throw new Error("Unable to save move.");
+}
+
 export type CreatedSession = {
   _id: string;
   players: { X: { name: string }; O: { name: string } };
