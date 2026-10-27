@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { createSession, type CreatedSession } from "@/lib/api/sessions";
 import GameBoard from "@/components/game-board";
 
-export default function NewGame() {
+export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
   const [open, setOpen] = useState(false);
   const [xName, setXName] = useState("");
   const [oName, setOName] = useState("");
@@ -35,7 +35,14 @@ export default function NewGame() {
   }
 
   if (session) {
-    return <GameBoard key={session._id} sessionId={session._id} />;
+    return <GameBoard key={session._id} sessionId={session._id} onStopped={() => {
+      setSession(null);
+      setOpen(false);
+      setXName("");
+      setOName("");
+      setError("");
+      onCompleted?.();
+    }} />;
   }
 
   if (!open) {

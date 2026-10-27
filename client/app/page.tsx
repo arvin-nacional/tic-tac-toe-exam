@@ -33,7 +33,10 @@ export default function Home() {
         <p className="mt-3 text-zinc-600 dark:text-zinc-400">Past games, friendly rivalries, and every result.</p>
       </header>
 
-      <NewGame />
+      <NewGame onCompleted={() => {
+        setHistory({ status: "loading" });
+        setAttempt((previous) => previous + 1);
+      }} />
 
       <section aria-labelledby="history-heading">
         <h2 id="history-heading" className="text-2xl font-semibold">Completed sessions</h2>

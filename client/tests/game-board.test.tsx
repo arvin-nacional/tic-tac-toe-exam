@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import GameBoard from "@/components/game-board";
 
@@ -6,6 +6,7 @@ const initial = {
   _id: "game-1", status: "active",
   players: { X: { name: "Arvin" }, O: { name: "Sam" } },
   rounds: [{ moves: [], result: null }],
+  statistics: { X: { wins: 0, losses: 0, draws: 0 }, O: { wins: 0, losses: 0, draws: 0 } },
   currentRound: { number: 1, board: Array(9).fill(null), currentPlayer: "X", status: "in_progress" },
 };
 const fetchMock = vi.fn();
@@ -23,6 +24,74 @@ test("loads the server board and identifies the current player", async () => {
   expect(screen.getByRole("status")).toHaveTextContent("Arvin's turn (X)");
   expect(screen.getAllByRole("button", { name: /Row \d, column \d: empty/ })).toHaveLength(9);
   expect(fetchMock).toHaveBeenCalledWith("/api/sessions/game-1", expect.objectContaining({ cache: "no-store" }));
+});
+
+const finished = {
+  ...initial, rounds: [{ moves: [], result: "X" }],
+  currentRound: { ...initial.currentRound, status: "finished", currentPlayer: null },
+  statistics: { X: { wins: 2, losses: 1, draws: 1 }, O: { wins: 1, losses: 2, draws: 1 } },
+};
+
+test("shows server scores but no Continue or Stop during an active round", async () => {
+  fetchMock.mockResolvedValueOnce(ok(initial));
+  render(<GameBoard sessionId="game-1" />);
+  const scores = await screen.findByRole("table", { name: "Session scores" });
+  expect(within(scores).getByRole("row", { name: "Arvin (X) 0 0 0" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Stop" })).not.toBeInTheDocument();
+});
+
+test("Continue submits once and loads a new round without resetting scores", async () => {
+  let resolve!: (value: unknown) => void;
+  fetchMock.mockResolvedValueOnce(ok(finished))
+    .mockReturnValueOnce(new Promise((done) => { resolve = done; }))
+    .mockResolvedValueOnce(ok({ ...initial, statistics: finished.statistics,
+      rounds: [...finished.rounds, { result: null }], currentRound: { ...initial.currentRound, number: 2 },
+    }));
+  render(<GameBoard sessionId="game-1" />);
+  const button = await screen.findByRole("button", { name: "Continue" });
+  fireEvent.click(button);
+  fireEvent.click(button);
+  expect(button).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Stop" })).toBeDisabled();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenLastCalledWith("/api/sessions/game-1/rounds", expect.objectContaining({ method: "POST" }));
+  await act(async () => resolve(ok({})));
+  expect(await screen.findByText("Round 2")).toBeInTheDocument();
+  expect(screen.getByRole("row", { name: "Arvin (X) 2 1 1" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Row 1, column 1: empty" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+});
+
+test("Stop waits for confirmation and returns to history exactly once", async () => {
+  const onStopped = vi.fn();
+  let resolve!: (value: unknown) => void;
+  fetchMock.mockResolvedValueOnce(ok(finished)).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  render(<GameBoard sessionId="game-1" onStopped={onStopped} />);
+  const button = await screen.findByRole("button", { name: "Stop" });
+  fireEvent.click(button);
+  fireEvent.click(button);
+  expect(onStopped).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  expect(fetchMock).toHaveBeenLastCalledWith("/api/sessions/game-1/complete", expect.objectContaining({ method: "POST" }));
+  await act(async () => resolve(ok({})));
+  expect(onStopped).toHaveBeenCalledTimes(1);
+});
+
+test.each(["Continue", "Stop"])("failed %s locks actions until a read refresh, without automatic resend", async (action) => {
+  const onStopped = vi.fn();
+  fetchMock.mockResolvedValueOnce(ok(finished)).mockRejectedValueOnce(new Error("Offline"))
+    .mockResolvedValueOnce(ok({ ...finished, status: "completed" }));
+  render(<GameBoard sessionId="game-1" onStopped={onStopped} />);
+  fireEvent.click(await screen.findByRole("button", { name: action }));
+  await screen.findByRole("alert");
+  expect(onStopped).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Stop" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh game" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Return to history" }));
+  expect(onStopped).toHaveBeenCalledTimes(1);
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "POST")).toHaveLength(1);
 });
 
 test("sends one move, locks the board while pending, and displays refreshed server state", async () => {

@@ -3,6 +3,7 @@ type PlayerStatistics = { wins: number; losses: number; draws: number };
 export type PlayerMark = "X" | "O";
 export type GameSession = CreatedSession & {
   status: "active" | "completed";
+  statistics: { X: PlayerStatistics; O: PlayerStatistics };
   rounds: { result: PlayerMark | "draw" | null }[];
   currentRound: {
     number: number;
@@ -24,6 +25,13 @@ export async function submitMove(id: string, player: PlayerMark, cellIndex: numb
     body: JSON.stringify({ player, cellIndex }), signal,
   });
   if (!response.ok) throw new Error("Unable to save move.");
+}
+
+export async function updateSession(id: string, action: "rounds" | "complete", signal: AbortSignal): Promise<void> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(id)}/${action}`, {
+    method: "POST", signal,
+  });
+  if (!response.ok) throw new Error("Unable to update session.");
 }
 
 export type CreatedSession = {
