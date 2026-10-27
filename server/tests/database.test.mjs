@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test, vi } from 'vitest';
 import mongoose from 'mongoose';
 import { connectDatabase } from '../src/database.ts';
 
@@ -11,9 +11,9 @@ test('rejects a missing or blank MongoDB URI', async () => {
   }
 });
 
-test('waits until the database connection succeeds', async (t) => {
+test('waits until the database connection succeeds', async () => {
   let finishConnection;
-  t.mock.method(mongoose, 'connect', () => new Promise((resolve) => {
+  vi.spyOn(mongoose, 'connect').mockImplementation(() => new Promise((resolve) => {
     finishConnection = resolve;
   }));
   let connected = false;
@@ -27,8 +27,8 @@ test('waits until the database connection succeeds', async (t) => {
   assert.equal(connected, true);
 });
 
-test('reports connection failure without leaking the URI', async (t) => {
-  t.mock.method(mongoose, 'connect', async () => {
+test('reports connection failure without leaking the URI', async () => {
+  vi.spyOn(mongoose, 'connect').mockImplementation(async () => {
     throw new Error('Failed mongodb://user:secret@localhost/test');
   });
   await assert.rejects(connectDatabase('mongodb://user:secret@localhost/test'), {

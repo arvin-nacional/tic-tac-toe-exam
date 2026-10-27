@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { createRound, getRoundResult, getWinner, makeMove } from '../src/domain/round.ts';
 
 test('records a draw only for a full board with no winner', () => {

@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node --env-file-if-exists=.env dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test tests/*.test.mjs"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "packageManager": "pnpm@10.7.0",
   "dependencies": {
@@ -21,6 +22,7 @@
     "mongodb-memory-server": "^11.3.0",
     "supertest": "^7.3.1",
     "tsx": "4",
-    "typescript": "5"
+    "typescript": "5",
+    "vitest": "^5.0.5"
   }
 }

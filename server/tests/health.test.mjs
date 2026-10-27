@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.ts';
 

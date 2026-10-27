@@ -1,6 +1,6 @@
 # Tic-Tac-Toe server
 
-Express and TypeScript backend connected to MongoDB through Mongoose. Session creation is implemented; gameplay and session-history endpoints are not implemented yet.
+Express and TypeScript backend connected to MongoDB through Mongoose. Session creation, retrieval, moves, and continuing to another round are implemented. Session completion and session-history listing are not implemented yet.
 
 ## Local setup
 
@@ -32,7 +32,15 @@ Send `POST /api/sessions` with `Content-Type: application/json` and this body:
 
 The endpoint saves a session in MongoDB and returns `201` with its `_id`, players, `active` status, one round with no moves and a `null` result, `createdAt`, and `completedAt: null`. Names are trimmed. Missing, blank, or non-string names return `400`; a failed save returns a generic `500` error. Client-supplied status, rounds, and timestamps are ignored.
 
+## Continue a session
+
+After a round ends, send `POST /api/sessions/:id/rounds` with no request body. The endpoint appends an empty round, preserves earlier rounds and results, saves the session, and returns `201` with the updated session document. Retrieve `GET /api/sessions/:id` for the new board, X's turn, and cumulative statistics.
+
+An invalid ID returns `400`, an unknown session returns `404`, and a completed session or unfinished current round returns `409`. A conflicting save returns `409`; other save failures return a generic `500` error.
+
 ## Checks and production startup
+
+Server tests use Vitest in a Node environment, Supertest for HTTP requests, and `mongodb-memory-server` for database integration. Run `pnpm test` for a single test run or `pnpm test:watch` to rerun tests as files change. The existing `node:assert/strict` assertions remain valid under Vitest; hooks and mocks use Vitest APIs. The `tsx` dependency remains necessary for the development server.
 
 ```sh
 pnpm typecheck
