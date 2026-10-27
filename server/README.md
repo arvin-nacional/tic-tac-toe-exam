@@ -1,6 +1,6 @@
 # Tic-Tac-Toe server
 
-Express and TypeScript backend connected to MongoDB through Mongoose. Game endpoints and session persistence will be added in later tasks.
+Express and TypeScript backend connected to MongoDB through Mongoose. Session creation is implemented; gameplay and session-history endpoints are not implemented yet.
 
 ## Local setup
 
@@ -20,7 +20,17 @@ The server connects to MongoDB before listening for HTTP requests. Missing confi
 
 Both `pnpm dev` and `pnpm start` load `.env` using Node.js's built-in environment file support. Restart the server after changing `.env`. Environment variables already set by your shell or hosting provider take precedence, and a missing `.env` is allowed. Keep real credentials in the ignored `.env`; commit only the empty example.
 
-The server defaults to port 3001. Set `PORT` to override it. `GET /health` returns HTTP 200 with `{"status":"ok"}` to confirm the HTTP server is responding. This is a liveness check; it does not check current MongoDB connectivity. Other routes return Express's default 404 response.
+The server defaults to port 3001. Set `PORT` to override it. `GET /health` returns HTTP 200 with `{"status":"ok"}` to confirm the HTTP server is responding. This is a liveness check; it does not check current MongoDB connectivity.
+
+## Create a session
+
+Send `POST /api/sessions` with `Content-Type: application/json` and this body:
+
+```json
+{ "players": { "X": { "name": "Arvin" }, "O": { "name": "Sam" } } }
+```
+
+The endpoint saves a session in MongoDB and returns `201` with its `_id`, players, `active` status, one round with no moves and a `null` result, `createdAt`, and `completedAt: null`. Names are trimmed. Missing, blank, or non-string names return `400`; a failed save returns a generic `500` error. Client-supplied status, rounds, and timestamps are ignored.
 
 ## Checks and production startup
 
@@ -31,4 +41,6 @@ pnpm build
 pnpm start
 ```
 
-[src/app.ts](src/app.ts) configures Express without opening a network port, allowing future HTTP tests to import the app. [src/server.ts](src/server.ts) starts the listener. TypeScript compiles the source into the ignored `dist` directory.
+[tests/sessions.test.mjs](tests/sessions.test.mjs) starts an isolated temporary MongoDB process using `mongodb-memory-server`, calls the session endpoint, and reads the saved document directly from MongoDB. It does not load `.env` or use your development database. The first run downloads a MongoDB binary and needs network access; later runs reuse the cached binary. The setup timeout allows up to 20 minutes for the initial download. The test disconnects and stops the temporary database afterward.
+
+[src/app.ts](src/app.ts) configures Express without opening a network port, allowing HTTP tests to import the app. [src/server.ts](src/server.ts) starts the listener. TypeScript compiles the source into the ignored `dist` directory.

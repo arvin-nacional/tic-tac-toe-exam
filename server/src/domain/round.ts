@@ -15,8 +15,12 @@ export function createRound(): RoundState {
   };
 }
 
-// Cell-index validation and round-result detection are not implemented yet.
+// Round-result detection is not implemented yet.
 export function makeMove(round: RoundState, cellIndex: number): RoundState {
+  if (!Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex > 8) {
+    throw new Error('Cell index must be an integer between 0 and 8.');
+  }
+
   if (round.board[cellIndex] === 'X' || round.board[cellIndex] === 'O') {
     throw new Error('Cell is already occupied.');
   }

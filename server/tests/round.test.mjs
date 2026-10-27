@@ -2,6 +2,22 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createRound, makeMove } from '../src/domain/round.ts';
 
+test('rejects invalid cell indexes without changing the round', () => {
+  const invalidIndexes = [-1, 9, 0.5, NaN, Infinity, -Infinity, '0', null, undefined];
+
+  for (const cellIndex of invalidIndexes) {
+    const round = createRound();
+    const original = structuredClone(round);
+
+    assert.throws(
+      () => makeMove(round, cellIndex),
+      /Cell index must be an integer between 0 and 8/,
+      `Expected index ${String(cellIndex)} to be rejected`,
+    );
+    assert.deepEqual(round, original);
+  }
+});
+
 test('rejects a move into an occupied cell without changing the round', () => {
   const round = makeMove(createRound(), 0);
   const original = structuredClone(round);
