@@ -599,6 +599,66 @@ test.each([
   assert.deepEqual(await sessions.findOne(filter), completed);
 });
 
+test('statistics accumulate across X wins, O wins, and draws and survive session completion', async () => {
+  const created = await request(app).post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } }).expect(201);
+  const sessionId = created.body._id;
+  const scenarios = [
+    {
+      cells: [0, 3, 1, 4, 2], result: 'X',
+      statistics: { X: { wins: 1, losses: 0, draws: 0 }, O: { wins: 0, losses: 1, draws: 0 } },
+    },
+    {
+      cells: [0, 3, 1, 4, 8, 5], result: 'O',
+      statistics: { X: { wins: 1, losses: 1, draws: 0 }, O: { wins: 1, losses: 1, draws: 0 } },
+    },
+    {
+      cells: [0, 1, 2, 4, 3, 5, 7, 6, 8], result: 'draw',
+      statistics: { X: { wins: 1, losses: 1, draws: 1 }, O: { wins: 1, losses: 1, draws: 1 } },
+    },
+  ];
+  const expectedRounds = [];
+
+  for (const [index, scenario] of scenarios.entries()) {
+    if (index > 0) {
+      await request(app).post(`/api/sessions/${sessionId}/rounds`).expect(201);
+      const continued = await request(app).get(`/api/sessions/${sessionId}`).expect(200);
+      assert.deepEqual(continued.body.statistics, scenarios[index - 1].statistics);
+      assert.deepEqual(continued.body.rounds, [...expectedRounds, { moves: [], result: null }]);
+      assert.equal(continued.body.currentRound.currentPlayer, 'X');
+    }
+
+    const moves = scenario.cells.map((cellIndex, i) => ({ player: i % 2 === 0 ? 'X' : 'O', cellIndex }));
+    for (const move of moves) {
+      await request(app).post(`/api/sessions/${sessionId}/moves`).send(move).expect(200);
+    }
+    expectedRounds.push({ moves, result: scenario.result });
+    const finished = await request(app).get(`/api/sessions/${sessionId}`).expect(200);
+    assert.deepEqual(finished.body.statistics, scenario.statistics);
+    assert.deepEqual(finished.body.rounds, expectedRounds);
+    assert.equal(finished.body.currentRound.number, index + 1);
+    assert.equal(finished.body.currentRound.status, 'finished');
+    assert.equal(finished.body.currentRound.currentPlayer, null);
+  }
+
+  await request(app).post(`/api/sessions/${sessionId}/complete`).expect(200);
+  const stored = await mongoose.connection.collection('sessions').findOne({
+    _id: new mongoose.Types.ObjectId(sessionId),
+  });
+  assert.ok(stored);
+  assert.equal(stored.status, 'completed');
+  assert.deepEqual(stored.rounds, expectedRounds);
+
+  const completed = await request(app).get(`/api/sessions/${sessionId}`).expect(200);
+  assert.equal(completed.body.status, 'completed');
+  assert.deepEqual(completed.body.statistics, scenarios[2].statistics);
+  const history = await request(app).get('/api/sessions?status=completed').expect(200);
+  const entry = history.body.find((session) => session._id === sessionId);
+  assert.ok(entry);
+  assert.equal(entry.roundCount, 3);
+  assert.deepEqual(entry.statistics, scenarios[2].statistics);
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 
