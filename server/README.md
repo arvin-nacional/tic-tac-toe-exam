@@ -1,6 +1,6 @@
 # Tic-Tac-Toe server
 
-Express and TypeScript backend connected to MongoDB through Mongoose. Session creation, retrieval, moves, continuing to another round, and session completion are implemented. Session-history listing is not implemented yet.
+Express and TypeScript backend connected to MongoDB through Mongoose. Session creation, retrieval, moves, continuing to another round, session completion, and completed-session history are implemented.
 
 ## Local setup
 
@@ -21,6 +21,12 @@ The server connects to MongoDB before listening for HTTP requests. Missing confi
 Both `pnpm dev` and `pnpm start` load `.env` using Node.js's built-in environment file support. Restart the server after changing `.env`. Environment variables already set by your shell or hosting provider take precedence, and a missing `.env` is allowed. Keep real credentials in the ignored `.env`; commit only the empty example.
 
 The server defaults to port 3001. Set `PORT` to override it. `GET /health` returns HTTP 200 with `{"status":"ok"}` to confirm the HTTP server is responding. This is a liveness check; it does not check current MongoDB connectivity.
+
+## Completed-session history
+
+`GET /api/sessions?status=completed` returns `200` with an array of completed sessions, sorted by `completedAt` descending (then `_id` descending for ties). This collection endpoint always lists completed sessions, including when the query is omitted; it does not support listing active sessions.
+
+Each item contains `_id`, `status`, `players`, `roundCount`, `statistics` (wins, losses, draws for X and O), `createdAt`, and `completedAt`. Statistics are derived from stored round results. An empty history returns `[]`; database failures return `500` with a generic JSON error. Use the session-detail endpoint for full move history. Pagination is not implemented.
 
 ## Create a session
 

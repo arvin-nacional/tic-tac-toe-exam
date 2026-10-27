@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { createRound, getRoundResult, makeMove } from './domain/round.js';
 import { Session } from './models/session.js';
+import { getStatistics } from './domain/statistics.js';
 
 export const app = express();
 
@@ -9,6 +10,25 @@ app.use(express.json());
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+app.get('/api/sessions', async (_req, res) => {
+  try {
+    const sessions = await Session.find({ status: 'completed' })
+      .sort({ completedAt: -1, _id: -1 }).lean();
+
+    res.status(200).json(sessions.map((session) => ({
+      _id: session._id,
+      status: session.status,
+      players: session.players,
+      roundCount: session.rounds.length,
+      statistics: getStatistics(session.rounds),
+      createdAt: session.createdAt,
+      completedAt: session.completedAt,
+    })));
+  } catch {
+    res.status(500).json({ error: 'Unable to retrieve session history.' });
+  }
 });
 
 app.get('/api/sessions/:id', async (req, res) => {
@@ -34,9 +54,6 @@ app.get('/api/sessions/:id', async (req, res) => {
       createRound(),
     );
     const finished = latestRound.result !== null;
-    const xWins = session.rounds.filter((round) => round.result === 'X').length;
-    const oWins = session.rounds.filter((round) => round.result === 'O').length;
-    const draws = session.rounds.filter((round) => round.result === 'draw').length;
 
     res.status(200).json({
       _id: session._id,
@@ -49,10 +66,7 @@ app.get('/api/sessions/:id', async (req, res) => {
         currentPlayer: finished ? null : roundState.currentPlayer,
         status: finished ? 'finished' : 'in_progress',
       },
-      statistics: {
-        X: { wins: xWins, losses: oWins, draws },
-        O: { wins: oWins, losses: xWins, draws },
-      },
+      statistics: getStatistics(session.rounds),
       createdAt: session.createdAt,
       completedAt: session.completedAt,
     });
