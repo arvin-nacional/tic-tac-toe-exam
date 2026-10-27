@@ -71,6 +71,38 @@ test('POST /api/sessions creates an active session with two players and an empty
   assert.equal(stored.completedAt, null);
 });
 
+test('GET /api/sessions/:id returns the saved session with its initial board, turn, and statistics', async () => {
+  const players = { X: { name: 'Arvin' }, O: { name: 'Sam' } };
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players })
+    .expect(201);
+
+  const response = await request(app)
+    .get(`/api/sessions/${created.body._id}`)
+    .expect(200)
+    .expect('Content-Type', /json/);
+
+  assert.deepEqual(response.body, {
+    _id: created.body._id,
+    status: 'active',
+    players,
+    rounds: [{ moves: [], result: null }],
+    currentRound: {
+      number: 1,
+      board: [null, null, null, null, null, null, null, null, null],
+      currentPlayer: 'X',
+      status: 'in_progress',
+    },
+    statistics: {
+      X: { wins: 0, losses: 0, draws: 0 },
+      O: { wins: 0, losses: 0, draws: 0 },
+    },
+    createdAt: created.body.createdAt,
+    completedAt: null,
+  });
+});
+
 test('POST /api/sessions rejects a missing player name without saving a session', async () => {
   const sessions = mongoose.connection.collection('sessions');
   const countBefore = await sessions.countDocuments();
