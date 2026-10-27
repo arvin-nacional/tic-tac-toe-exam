@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getCompletedSessions, type CompletedSession } from "@/lib/api/sessions";
+import NewGame from "@/components/new-game";
 
 type HistoryState =
   | { status: "loading" }
@@ -31,6 +32,8 @@ export default function Home() {
         <h1 className="text-4xl font-bold tracking-tight">Tic-Tac-Toe</h1>
         <p className="mt-3 text-zinc-600 dark:text-zinc-400">Past games, friendly rivalries, and every result.</p>
       </header>
+
+      <NewGame />
 
       <section aria-labelledby="history-heading">
         <h2 id="history-heading" className="text-2xl font-semibold">Completed sessions</h2>

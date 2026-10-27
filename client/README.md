@@ -22,7 +22,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Completed-session history
 
-The home page displays completed sessions with player names, round counts, completion times in UTC, and server-calculated wins, losses, and draws. It includes loading, empty, and retryable error states. Starting a new game is a separate feature and is not implemented in the client yet.
+The home page displays completed sessions with player names, round counts, completion times in UTC, and server-calculated wins, losses, and draws. It includes loading, empty, and retryable error states.
+
+Start New Game opens a two-player name form. It rejects blank or whitespace-only names, trims names before sending `POST /api/sessions`, disables submission while pending, and preserves names for retry after a failure. Cancel closes the form without creating a session. On success, it displays the player assignments returned by Express. The playable board and resuming an active session after a page reload are not implemented yet; session creation is persisted by the backend.
 
 Run the Express backend using the instructions in [server/README.md](../server/README.md). The client defaults to `http://localhost:3001` for its backend. To override it, copy [.env.example](.env.example) to `.env.local` (without overwriting an existing file) and set `API_BASE_URL` to the backend origin, without `/api` at the end.
 
@@ -39,7 +41,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Tests use Vitest, React Testing Library, and jsdom. `pnpm test` runs once; `pnpm test:watch` reruns affected tests as files change. [tests/setup.ts](tests/setup.ts) enables DOM assertions and cleans up rendered components after each test. [Page tests](tests/page.test.tsx) verify loading, populated and empty history, request failures, and retry behavior with mocked HTTP responses.
+Tests use Vitest, React Testing Library, and jsdom. `pnpm test` runs once; `pnpm test:watch` reruns affected tests as files change. [tests/setup.ts](tests/setup.ts) enables DOM assertions and cleans up rendered components after each test. [Page tests](tests/page.test.tsx) cover history states. [New-game tests](tests/new-game.test.tsx) cover cancellation, validation, trimmed requests, duplicate-submit prevention, confirmation, and retries. HTTP responses are mocked.
 
 Vitest supports synchronous components here. Async Server Components and complete browser journeys will need end-to-end tests separately. These component tests do not start Next.js or call the Express server.
 
