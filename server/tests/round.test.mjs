@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createRound, makeMove } from '../src/domain/round.ts';
 
+test('rejects a move into an occupied cell without changing the round', () => {
+  const round = makeMove(createRound(), 0);
+  const original = structuredClone(round);
+
+  assert.throws(() => makeMove(round, 0), /Cell is already occupied/);
+  assert.deepEqual(round, original);
+});
+
 test('creates an in-progress round with nine empty cells and X to play', () => {
   assert.deepEqual(createRound(), {
     board: [null, null, null, null, null, null, null, null, null],

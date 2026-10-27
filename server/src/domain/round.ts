@@ -15,8 +15,12 @@ export function createRound(): RoundState {
   };
 }
 
-// Assumes a legal move; validation and round-result detection are not implemented yet.
+// Cell-index validation and round-result detection are not implemented yet.
 export function makeMove(round: RoundState, cellIndex: number): RoundState {
+  if (round.board[cellIndex] === 'X' || round.board[cellIndex] === 'O') {
+    throw new Error('Cell is already occupied.');
+  }
+
   const board = [...round.board];
   board[cellIndex] = round.currentPlayer;
 
