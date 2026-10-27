@@ -163,6 +163,56 @@ test('POST /api/sessions/:id/moves rejects an out-of-turn move without changing 
   assert.deepEqual(await sessions.findOne(filter), beforeMove);
 });
 
+test('POST /api/sessions/:id/moves rejects an occupied cell without changing the saved session', async () => {
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } })
+    .expect(201);
+  const sessionId = created.body._id;
+
+  await request(app)
+    .post(`/api/sessions/${sessionId}/moves`)
+    .send({ player: 'X', cellIndex: 4 })
+    .expect(200);
+
+  const sessions = mongoose.connection.collection('sessions');
+  const filter = { _id: new mongoose.Types.ObjectId(sessionId) };
+  const beforeMove = await sessions.findOne(filter);
+  assert.ok(beforeMove);
+  assert.deepEqual(beforeMove.rounds[0].moves, [{ player: 'X', cellIndex: 4 }]);
+
+  await request(app)
+    .post(`/api/sessions/${sessionId}/moves`)
+    .send({ player: 'O', cellIndex: 4 })
+    .expect('Content-Type', /json/)
+    .expect(409, { error: 'Cell is already occupied.' });
+
+  assert.deepEqual(await sessions.findOne(filter), beforeMove);
+});
+
+test('POST /api/sessions/:id/moves rejects invalid cell indexes without changing the saved session', async () => {
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } })
+    .expect(201);
+  const sessionId = created.body._id;
+  const sessions = mongoose.connection.collection('sessions');
+  const filter = { _id: new mongoose.Types.ObjectId(sessionId) };
+  const beforeMove = await sessions.findOne(filter);
+  assert.ok(beforeMove);
+
+  // undefined omits cellIndex from the JSON request, covering a missing field.
+  for (const cellIndex of [-1, 9, 0.5, '4', null, true, undefined]) {
+    await request(app)
+      .post(`/api/sessions/${sessionId}/moves`)
+      .send({ player: 'X', cellIndex })
+      .expect('Content-Type', /json/)
+      .expect(400, { error: 'Cell index must be an integer between 0 and 8.' });
+
+    assert.deepEqual(await sessions.findOne(filter), beforeMove);
+  }
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 
