@@ -103,6 +103,22 @@ test('GET /api/sessions/:id returns the saved session with its initial board, tu
   });
 });
 
+test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
+  const unknownId = new mongoose.Types.ObjectId().toHexString();
+
+  await request(app)
+    .get(`/api/sessions/${unknownId}`)
+    .expect('Content-Type', /json/)
+    .expect(404, { error: 'Session not found.' });
+});
+
+test('GET /api/sessions/:id returns 400 for a malformed session ID', async () => {
+  await request(app)
+    .get('/api/sessions/not-a-valid-id')
+    .expect('Content-Type', /json/)
+    .expect(400, { error: 'Invalid session ID.' });
+});
+
 test('POST /api/sessions rejects a missing player name without saving a session', async () => {
   const sessions = mongoose.connection.collection('sessions');
   const countBefore = await sessions.countDocuments();
