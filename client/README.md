@@ -20,6 +20,14 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Completed-session history
+
+The home page displays completed sessions with player names, round counts, completion times in UTC, and server-calculated wins, losses, and draws. It includes loading, empty, and retryable error states. Starting a new game is a separate feature and is not implemented in the client yet.
+
+Run the Express backend using the instructions in [server/README.md](../server/README.md). The client defaults to `http://localhost:3001` for its backend. To override it, copy [.env.example](.env.example) to `.env.local` (without overwriting an existing file) and set `API_BASE_URL` to the backend origin, without `/api` at the end.
+
+[next.config.ts](next.config.ts) forwards `/api/sessions` requests and their query strings to Express. The browser uses the Next.js origin, avoiding cross-origin browser requests. Express remains responsible for the API and database; no Server Actions or duplicate API handlers are added. Restart Next.js after changing the environment variable. Set `API_BASE_URL` to the HTTPS Render backend URL before building on Vercel; changing it requires a rebuild/redeploy.
+
 ## Tests and checks
 
 From this directory, run:
@@ -31,7 +39,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Tests use Vitest, React Testing Library, and jsdom. `pnpm test` runs once; `pnpm test:watch` reruns affected tests as files change. [tests/setup.ts](tests/setup.ts) enables DOM assertions and cleans up rendered components after each test. The initial [page smoke test](tests/page.test.tsx) checks the existing starter page; update it when the actual home page is implemented.
+Tests use Vitest, React Testing Library, and jsdom. `pnpm test` runs once; `pnpm test:watch` reruns affected tests as files change. [tests/setup.ts](tests/setup.ts) enables DOM assertions and cleans up rendered components after each test. [Page tests](tests/page.test.tsx) verify loading, populated and empty history, request failures, and retry behavior with mocked HTTP responses.
 
 Vitest supports synchronous components here. Async Server Components and complete browser journeys will need end-to-end tests separately. These component tests do not start Next.js or call the Express server.
 
