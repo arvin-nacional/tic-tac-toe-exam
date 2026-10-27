@@ -540,6 +540,65 @@ test('POST /api/sessions/:id/complete saves completion time and preserves the fi
   });
 });
 
+test.each([0, 1])('Stop rejects an unfinished round with %i moves without saving changes', async (moveCount) => {
+  const created = await request(app).post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } }).expect(201);
+  const sessionId = created.body._id;
+  if (moveCount === 1) {
+    await request(app).post(`/api/sessions/${sessionId}/moves`)
+      .send({ player: 'X', cellIndex: 4 }).expect(200);
+  }
+
+  const sessions = mongoose.connection.collection('sessions');
+  const filter = { _id: new mongoose.Types.ObjectId(sessionId) };
+  const beforeStop = await sessions.findOne(filter);
+  assert.ok(beforeStop);
+  assert.equal(beforeStop.status, 'active');
+  assert.equal(beforeStop.completedAt, null);
+  assert.equal(beforeStop.rounds[0].result, null);
+  assert.equal(beforeStop.rounds[0].moves.length, moveCount);
+
+  await request(app).post(`/api/sessions/${sessionId}/complete`)
+    .expect('Content-Type', /json/)
+    .expect(409, { error: 'Current round is still in progress.' });
+  assert.deepEqual(await sessions.findOne(filter), beforeStop);
+});
+
+test.each([
+  { action: 'move', path: 'moves', body: { player: 'O', cellIndex: 5 }, error: 'Session or round has ended.' },
+  { action: 'Continue', path: 'rounds', body: {}, error: 'Session has ended.' },
+  { action: 'Stop again', path: 'complete', body: {}, error: 'Session has ended.' },
+])('completed sessions reject $action without changing saved data', async ({ path, body, error }) => {
+  const created = await request(app).post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } }).expect(201);
+  const sessionId = created.body._id;
+  const moves = [
+    { player: 'X', cellIndex: 0 },
+    { player: 'O', cellIndex: 3 },
+    { player: 'X', cellIndex: 1 },
+    { player: 'O', cellIndex: 4 },
+    { player: 'X', cellIndex: 2 },
+  ];
+  for (const move of moves) {
+    await request(app).post(`/api/sessions/${sessionId}/moves`).send(move).expect(200);
+  }
+  await request(app).post(`/api/sessions/${sessionId}/complete`).expect(200);
+
+  const sessions = mongoose.connection.collection('sessions');
+  const filter = { _id: new mongoose.Types.ObjectId(sessionId) };
+  const completed = await sessions.findOne(filter);
+  assert.ok(completed);
+  assert.equal(completed.status, 'completed');
+  assert.ok(completed.completedAt instanceof Date);
+  assert.deepEqual(completed.rounds, [{ moves, result: 'X' }]);
+
+  await request(app).post(`/api/sessions/${sessionId}/${path}`).send(body)
+    .expect('Content-Type', /json/)
+    .expect(409, { error });
+  // Includes the completion timestamp and document version, not just moves.
+  assert.deepEqual(await sessions.findOne(filter), completed);
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 
