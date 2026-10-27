@@ -163,6 +163,45 @@ app.post('/api/sessions/:id/rounds', async (req, res) => {
   }
 });
 
+app.post('/api/sessions/:id/complete', async (req, res) => {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+    res.status(400).json({ error: 'Invalid session ID.' });
+    return;
+  }
+
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) {
+      res.status(404).json({ error: 'Session not found.' });
+      return;
+    }
+
+    const latestRound = session.rounds.at(-1);
+    if (!latestRound) {
+      throw new Error('Session has no rounds.');
+    }
+    if (session.status !== 'active') {
+      res.status(409).json({ error: 'Session has ended.' });
+      return;
+    }
+    if (latestRound.result === null) {
+      res.status(409).json({ error: 'Current round is still in progress.' });
+      return;
+    }
+
+    session.status = 'completed';
+    session.completedAt = new Date();
+    await session.save();
+    res.status(200).json(session);
+  } catch (error) {
+    if (error instanceof mongoose.Error.VersionError) {
+      res.status(409).json({ error: 'Session changed. Refresh and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'Unable to complete session.' });
+  }
+});
+
 app.post('/api/sessions', async (req, res) => {
   const xName = req.body?.players?.X?.name;
   const oName = req.body?.players?.O?.name;

@@ -1,6 +1,6 @@
 # Tic-Tac-Toe server
 
-Express and TypeScript backend connected to MongoDB through Mongoose. Session creation, retrieval, moves, and continuing to another round are implemented. Session completion and session-history listing are not implemented yet.
+Express and TypeScript backend connected to MongoDB through Mongoose. Session creation, retrieval, moves, continuing to another round, and session completion are implemented. Session-history listing is not implemented yet.
 
 ## Local setup
 
@@ -37,6 +37,12 @@ The endpoint saves a session in MongoDB and returns `201` with its `_id`, player
 After a round ends, send `POST /api/sessions/:id/rounds` with no request body. The endpoint appends an empty round, preserves earlier rounds and results, saves the session, and returns `201` with the updated session document. Retrieve `GET /api/sessions/:id` for the new board, X's turn, and cumulative statistics.
 
 An invalid ID returns `400`, an unknown session returns `404`, and a completed session or unfinished current round returns `409`. A conflicting save returns `409`; other save failures return a generic `500` error.
+
+## Stop a session
+
+After a round ends, send `POST /api/sessions/:id/complete` with no request body. It saves `status: "completed"` and a server-generated `completedAt` timestamp, preserves all players and rounds, and returns `200` with the updated session document. The client can return to the home page after this succeeds.
+
+An invalid ID returns `400`, an unknown session returns `404`, and an already completed session or unfinished round returns `409`. Conflicting saves return `409`; other failures return a generic `500` error.
 
 ## Checks and production startup
 

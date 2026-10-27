@@ -480,6 +480,66 @@ test('POST /api/sessions/:id/rounds rejects Continue during an unfinished round 
   assert.deepEqual(await sessions.findOne(filter), beforeContinue);
 });
 
+test('POST /api/sessions/:id/complete saves completion time and preserves the finished game', async () => {
+  const players = { X: { name: 'Arvin' }, O: { name: 'Sam' } };
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players })
+    .expect(201);
+  const sessionId = created.body._id;
+  const moves = [
+    { player: 'X', cellIndex: 0 },
+    { player: 'O', cellIndex: 3 },
+    { player: 'X', cellIndex: 1 },
+    { player: 'O', cellIndex: 4 },
+    { player: 'X', cellIndex: 2 },
+  ];
+
+  for (const move of moves) {
+    await request(app)
+      .post(`/api/sessions/${sessionId}/moves`)
+      .send(move)
+      .expect(200);
+  }
+
+  const beforeStop = Date.now();
+  await request(app)
+    .post(`/api/sessions/${sessionId}/complete`)
+    .expect(200);
+  const afterStop = Date.now();
+
+  const stored = await mongoose.connection.collection('sessions').findOne({
+    _id: new mongoose.Types.ObjectId(sessionId),
+  });
+  assert.ok(stored);
+  assert.equal(stored.status, 'completed');
+  assert.ok(stored.completedAt instanceof Date);
+  assert.ok(stored.completedAt.getTime() >= beforeStop);
+  assert.ok(stored.completedAt.getTime() <= afterStop);
+  assert.deepEqual(stored.players, players);
+  assert.deepEqual(stored.rounds, [{ moves, result: 'X' }]);
+  assert.equal(stored.createdAt.toISOString(), created.body.createdAt);
+
+  const retrieved = await request(app)
+    .get(`/api/sessions/${sessionId}`)
+    .expect(200)
+    .expect('Content-Type', /json/);
+
+  assert.equal(retrieved.body.status, 'completed');
+  assert.equal(retrieved.body.completedAt, stored.completedAt.toISOString());
+  assert.deepEqual(retrieved.body.rounds, [{ moves, result: 'X' }]);
+  assert.deepEqual(retrieved.body.currentRound, {
+    number: 1,
+    board: ['X', 'X', 'X', 'O', 'O', null, null, null, null],
+    currentPlayer: null,
+    status: 'finished',
+  });
+  assert.deepEqual(retrieved.body.statistics, {
+    X: { wins: 1, losses: 0, draws: 0 },
+    O: { wins: 0, losses: 1, draws: 0 },
+  });
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 
