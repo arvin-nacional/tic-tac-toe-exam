@@ -23,6 +23,6 @@ const sessionSchema = new mongoose.Schema({
   rounds: { type: [roundSchema], default: () => [{ moves: [], result: null }] },
   createdAt: { type: Date, default: Date.now, required: true },
   completedAt: { type: Date, default: null },
-});
+}, { optimisticConcurrency: true });
 
 export const Session = mongoose.model('Session', sessionSchema);

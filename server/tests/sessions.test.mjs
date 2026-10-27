@@ -103,6 +103,66 @@ test('GET /api/sessions/:id returns the saved session with its initial board, tu
   });
 });
 
+test('POST /api/sessions/:id/moves saves the first X move and passes the turn to O', async () => {
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } })
+    .expect(201);
+  const sessionId = created.body._id;
+  const move = { player: 'X', cellIndex: 4 };
+
+  await request(app)
+    .post(`/api/sessions/${sessionId}/moves`)
+    .send(move)
+    .expect(200);
+
+  const stored = await mongoose.connection.collection('sessions').findOne({
+    _id: new mongoose.Types.ObjectId(sessionId),
+  });
+  assert.ok(stored);
+  assert.equal(stored.status, 'active');
+  assert.equal(stored.rounds.length, 1);
+  assert.deepEqual(stored.rounds[0].moves, [move]);
+  assert.equal(stored.rounds[0].result, null);
+
+  const retrieved = await request(app)
+    .get(`/api/sessions/${sessionId}`)
+    .expect(200)
+    .expect('Content-Type', /json/);
+
+  assert.deepEqual(retrieved.body.rounds, [{ moves: [move], result: null }]);
+  assert.deepEqual(retrieved.body.currentRound, {
+    number: 1,
+    board: [null, null, null, null, 'X', null, null, null, null],
+    currentPlayer: 'O',
+    status: 'in_progress',
+  });
+  assert.deepEqual(retrieved.body.statistics, {
+    X: { wins: 0, losses: 0, draws: 0 },
+    O: { wins: 0, losses: 0, draws: 0 },
+  });
+});
+
+test('POST /api/sessions/:id/moves rejects an out-of-turn move without changing the saved session', async () => {
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } })
+    .expect(201);
+  const sessionId = created.body._id;
+  const sessions = mongoose.connection.collection('sessions');
+  const filter = { _id: new mongoose.Types.ObjectId(sessionId) };
+  const beforeMove = await sessions.findOne(filter);
+  assert.ok(beforeMove);
+
+  await request(app)
+    .post(`/api/sessions/${sessionId}/moves`)
+    .send({ player: 'O', cellIndex: 4 })
+    .expect('Content-Type', /json/)
+    .expect(409, { error: 'It is not this player\'s turn.' });
+
+  assert.deepEqual(await sessions.findOne(filter), beforeMove);
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 

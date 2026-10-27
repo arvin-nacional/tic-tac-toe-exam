@@ -61,6 +61,68 @@ app.get('/api/sessions/:id', async (req, res) => {
   }
 });
 
+app.post('/api/sessions/:id/moves', async (req, res) => {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+    res.status(400).json({ error: 'Invalid session ID.' });
+    return;
+  }
+
+  const player = req.body?.player;
+  const cellIndex = req.body?.cellIndex;
+  if (player !== 'X' && player !== 'O') {
+    res.status(400).json({ error: 'Player must be X or O.' });
+    return;
+  }
+  if (!Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex > 8) {
+    res.status(400).json({ error: 'Cell index must be an integer between 0 and 8.' });
+    return;
+  }
+
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) {
+      res.status(404).json({ error: 'Session not found.' });
+      return;
+    }
+
+    const latestRound = session.rounds.at(-1);
+    if (!latestRound) {
+      throw new Error('Session has no rounds.');
+    }
+    if (session.status !== 'active' || latestRound.result !== null) {
+      res.status(409).json({ error: 'Session or round has ended.' });
+      return;
+    }
+
+    const roundState = latestRound.moves.reduce(
+      (state, move) => makeMove(state, move.cellIndex),
+      createRound(),
+    );
+    if (player !== roundState.currentPlayer) {
+      res.status(409).json({ error: 'It is not this player\'s turn.' });
+      return;
+    }
+
+    // Validate against the reconstructed board before recording the move.
+    try {
+      makeMove(roundState, cellIndex);
+    } catch {
+      res.status(409).json({ error: 'Cell is already occupied.' });
+      return;
+    }
+
+    latestRound.moves.push({ player, cellIndex });
+    await session.save();
+    res.status(200).json(session);
+  } catch (error) {
+    if (error instanceof mongoose.Error.VersionError) {
+      res.status(409).json({ error: 'Session changed. Refresh and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'Unable to save move.' });
+  }
+});
+
 app.post('/api/sessions', async (req, res) => {
   const xName = req.body?.players?.X?.name;
   const oName = req.body?.players?.O?.name;
