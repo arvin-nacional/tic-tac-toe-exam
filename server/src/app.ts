@@ -1,6 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { createRound, getWinner, makeMove } from './domain/round.js';
+import { createRound, getRoundResult, makeMove } from './domain/round.js';
 import { Session } from './models/session.js';
 
 export const app = express();
@@ -113,7 +113,7 @@ app.post('/api/sessions/:id/moves', async (req, res) => {
     }
 
     latestRound.moves.push({ player, cellIndex });
-    latestRound.result = getWinner(updatedRound.board);
+    latestRound.result = getRoundResult(updatedRound.board);
     await session.save();
     res.status(200).json(session);
   } catch (error) {

@@ -32,6 +32,13 @@ export function getWinner(board: readonly Cell[]): PlayerMark | null {
   return null;
 }
 
+export function getRoundResult(board: readonly Cell[]): PlayerMark | 'draw' | null {
+  const winner = getWinner(board);
+  if (winner !== null) return winner;
+
+  return board.every((cell) => cell !== null) ? 'draw' : null;
+}
+
 // Applies a move; the caller handles round completion.
 export function makeMove(round: RoundState, cellIndex: number): RoundState {
   if (!Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex > 8) {

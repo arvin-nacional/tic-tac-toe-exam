@@ -300,6 +300,59 @@ test('POST /api/sessions/:id/moves rejects moves after a win without changing th
   assert.deepEqual(await sessions.findOne(filter), beforeMove);
 });
 
+test('POST /api/sessions/:id/moves records a drawn round and increments both draw counts', async () => {
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } })
+    .expect(201);
+  const sessionId = created.body._id;
+  const moves = [
+    { player: 'X', cellIndex: 0 },
+    { player: 'O', cellIndex: 1 },
+    { player: 'X', cellIndex: 2 },
+    { player: 'O', cellIndex: 4 },
+    { player: 'X', cellIndex: 3 },
+    { player: 'O', cellIndex: 5 },
+    { player: 'X', cellIndex: 7 },
+    { player: 'O', cellIndex: 6 },
+    { player: 'X', cellIndex: 8 },
+  ];
+
+  for (const move of moves) {
+    await request(app)
+      .post(`/api/sessions/${sessionId}/moves`)
+      .send(move)
+      .expect(200);
+  }
+
+  const stored = await mongoose.connection.collection('sessions').findOne({
+    _id: new mongoose.Types.ObjectId(sessionId),
+  });
+  assert.ok(stored);
+  assert.equal(stored.rounds.length, 1);
+  assert.deepEqual(stored.rounds[0].moves, moves);
+  assert.equal(stored.rounds[0].result, 'draw');
+  assert.equal(stored.status, 'active');
+  assert.equal(stored.completedAt, null);
+
+  const retrieved = await request(app)
+    .get(`/api/sessions/${sessionId}`)
+    .expect(200)
+    .expect('Content-Type', /json/);
+
+  assert.deepEqual(retrieved.body.rounds, [{ moves, result: 'draw' }]);
+  assert.deepEqual(retrieved.body.currentRound, {
+    number: 1,
+    board: ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', 'X'],
+    currentPlayer: null,
+    status: 'finished',
+  });
+  assert.deepEqual(retrieved.body.statistics, {
+    X: { wins: 0, losses: 0, draws: 1 },
+    O: { wins: 0, losses: 0, draws: 1 },
+  });
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 

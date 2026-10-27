@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createRound, getWinner, makeMove } from '../src/domain/round.ts';
+import { createRound, getRoundResult, getWinner, makeMove } from '../src/domain/round.ts';
+
+test('records a draw only for a full board with no winner', () => {
+  const board = ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', 'X'];
+  const original = [...board];
+  assert.equal(getRoundResult(board), 'draw');
+  assert.deepEqual(board, original);
+  assert.equal(getRoundResult([...board.slice(0, 8), null]), null);
+  assert.equal(getRoundResult(Array(9).fill(null)), null);
+});
+
+test('a winning move on the final empty cell is a win rather than a draw', () => {
+  assert.equal(getRoundResult(['X', 'O', 'O', 'O', 'X', 'X', 'X', 'O', 'X']), 'X');
+});
 
 test('detects either player winning across any row, column, or diagonal', () => {
   const winningLines = [
