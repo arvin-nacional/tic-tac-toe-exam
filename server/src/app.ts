@@ -1,6 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { createRound, makeMove } from './domain/round.js';
+import { createRound, getWinner, makeMove } from './domain/round.js';
 import { Session } from './models/session.js';
 
 export const app = express();
@@ -104,14 +104,16 @@ app.post('/api/sessions/:id/moves', async (req, res) => {
     }
 
     // Validate against the reconstructed board before recording the move.
+    let updatedRound;
     try {
-      makeMove(roundState, cellIndex);
+      updatedRound = makeMove(roundState, cellIndex);
     } catch {
       res.status(409).json({ error: 'Cell is already occupied.' });
       return;
     }
 
     latestRound.moves.push({ player, cellIndex });
+    latestRound.result = getWinner(updatedRound.board);
     await session.save();
     res.status(200).json(session);
   } catch (error) {

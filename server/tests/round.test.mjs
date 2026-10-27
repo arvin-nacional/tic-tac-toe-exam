@@ -1,6 +1,35 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createRound, makeMove } from '../src/domain/round.ts';
+import { createRound, getWinner, makeMove } from '../src/domain/round.ts';
+
+test('detects either player winning across any row, column, or diagonal', () => {
+  const winningLines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
+  ];
+
+  for (const player of ['X', 'O']) {
+    for (const line of winningLines) {
+      const board = Array(9).fill(null);
+      for (const index of line) board[index] = player;
+      const original = [...board];
+
+      assert.equal(getWinner(board), player, `${player} wins on ${line}`);
+      assert.deepEqual(board, original);
+    }
+  }
+});
+
+test('reports no winner for an empty, incomplete, or drawn board', () => {
+  for (const board of [
+    Array(9).fill(null),
+    ['X', 'X', null, 'O', 'O', null, null, null, null],
+    ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', 'X'],
+  ]) {
+    assert.equal(getWinner(board), null);
+  }
+});
 
 test('rejects invalid cell indexes without changing the round', () => {
   const invalidIndexes = [-1, 9, 0.5, NaN, Infinity, -Infinity, '0', null, undefined];

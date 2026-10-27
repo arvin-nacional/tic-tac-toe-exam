@@ -15,7 +15,24 @@ export function createRound(): RoundState {
   };
 }
 
-// Round-result detection is not implemented yet.
+export function getWinner(board: readonly Cell[]): PlayerMark | null {
+  const winningLines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
+  ];
+
+  for (const [a, b, c] of winningLines) {
+    const player = board[a];
+    if ((player === 'X' || player === 'O')
+      && player === board[b] && player === board[c]) {
+      return player;
+    }
+  }
+  return null;
+}
+
+// Applies a move; the caller handles round completion.
 export function makeMove(round: RoundState, cellIndex: number): RoundState {
   if (!Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex > 8) {
     throw new Error('Cell index must be an integer between 0 and 8.');
