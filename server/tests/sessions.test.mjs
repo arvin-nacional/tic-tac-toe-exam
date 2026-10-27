@@ -7,6 +7,19 @@ import { app } from '../src/app.ts';
 
 let database;
 
+test('POST /api/sessions rejects a blank player name without saving a session', async () => {
+  const sessions = mongoose.connection.collection('sessions');
+  const countBefore = await sessions.countDocuments();
+
+  await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: '   ' }, O: { name: 'Sam' } } })
+    .expect('Content-Type', /json/)
+    .expect(400, { error: 'Both player names are required.' });
+
+  assert.equal(await sessions.countDocuments(), countBefore);
+});
+
 before(async () => {
   database = await MongoMemoryServer.create();
   await mongoose.connect(database.getUri(), { dbName: 'session-api-tests' });
