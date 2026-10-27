@@ -70,3 +70,16 @@ test('POST /api/sessions creates an active session with two players and an empty
   assert.equal(stored.createdAt.toISOString(), session.createdAt);
   assert.equal(stored.completedAt, null);
 });
+
+test('POST /api/sessions rejects a missing player name without saving a session', async () => {
+  const sessions = mongoose.connection.collection('sessions');
+  const countBefore = await sessions.countDocuments();
+
+  await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: {} } })
+    .expect('Content-Type', /json/)
+    .expect(400, { error: 'Both player names are required.' });
+
+  assert.equal(await sessions.countDocuments(), countBefore);
+});
