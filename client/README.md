@@ -20,6 +20,21 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Tests and checks
+
+From this directory, run:
+
+```sh
+pnpm test
+pnpm test:watch
+pnpm typecheck
+pnpm lint
+```
+
+Tests use Vitest, React Testing Library, and jsdom. `pnpm test` runs once; `pnpm test:watch` reruns affected tests as files change. [tests/setup.ts](tests/setup.ts) enables DOM assertions and cleans up rendered components after each test. The initial [page smoke test](tests/page.test.tsx) checks the existing starter page; update it when the actual home page is implemented.
+
+Vitest supports synchronous components here. Async Server Components and complete browser journeys will need end-to-end tests separately. These component tests do not start Next.js or call the Express server.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
