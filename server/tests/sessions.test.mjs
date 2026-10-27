@@ -262,6 +262,44 @@ test('POST /api/sessions/:id/moves records a winning round and updates player st
   });
 });
 
+test('POST /api/sessions/:id/moves rejects moves after a win without changing the saved session', async () => {
+  const created = await request(app)
+    .post('/api/sessions')
+    .send({ players: { X: { name: 'Arvin' }, O: { name: 'Sam' } } })
+    .expect(201);
+  const sessionId = created.body._id;
+  const moves = [
+    { player: 'X', cellIndex: 0 },
+    { player: 'O', cellIndex: 3 },
+    { player: 'X', cellIndex: 1 },
+    { player: 'O', cellIndex: 4 },
+    { player: 'X', cellIndex: 2 },
+  ];
+
+  for (const move of moves) {
+    await request(app)
+      .post(`/api/sessions/${sessionId}/moves`)
+      .send(move)
+      .expect(200);
+  }
+
+  const sessions = mongoose.connection.collection('sessions');
+  const filter = { _id: new mongoose.Types.ObjectId(sessionId) };
+  const beforeMove = await sessions.findOne(filter);
+  assert.ok(beforeMove);
+  assert.equal(beforeMove.status, 'active');
+  assert.equal(beforeMove.rounds[0].result, 'X');
+  assert.deepEqual(beforeMove.rounds[0].moves, moves);
+
+  await request(app)
+    .post(`/api/sessions/${sessionId}/moves`)
+    .send({ player: 'O', cellIndex: 5 })
+    .expect('Content-Type', /json/)
+    .expect(409, { error: 'Session or round has ended.' });
+
+  assert.deepEqual(await sessions.findOne(filter), beforeMove);
+});
+
 test('GET /api/sessions/:id returns 404 for a valid but unknown session ID', async () => {
   const unknownId = new mongoose.Types.ObjectId().toHexString();
 
