@@ -35,55 +35,105 @@ export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
   }
 
   if (session) {
-    return <GameBoard key={session._id} sessionId={session._id} onStopped={() => {
-      setSession(null);
-      setOpen(false);
-      setXName("");
-      setOName("");
-      setError("");
-      onCompleted?.();
-    }} />;
+    return (
+      <GameBoard
+        key={session._id}
+        sessionId={session._id}
+        onStopped={() => {
+          setSession(null);
+          setOpen(false);
+          setXName("");
+          setOName("");
+          setError("");
+          onCompleted?.();
+        }}
+      />
+    );
   }
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)}
-        className="mb-8 rounded-lg bg-foreground px-5 py-3 font-semibold text-background focus-visible:outline-2 focus-visible:outline-offset-4">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mb-8 rounded-lg bg-foreground px-5 py-3 font-semibold text-background focus-visible:outline-2 focus-visible:outline-offset-4 cursor-pointer"
+      >
         Start New Game
       </button>
     );
   }
 
   return (
-    <form aria-labelledby="new-game-heading" onSubmit={handleSubmit} noValidate
-      className="mb-8 rounded-xl border border-zinc-200 p-6 dark:border-zinc-800">
-      <h2 id="new-game-heading" className="text-2xl font-semibold">New game</h2>
-      <p className="mt-2 text-sm text-zinc-500">Enter both names. Player X goes first.</p>
+    <form
+      aria-labelledby="new-game-heading"
+      onSubmit={handleSubmit}
+      noValidate
+      className="mb-8 rounded-xl border border-zinc-200 p-6 dark:border-zinc-800"
+    >
+      <h2 id="new-game-heading" className="text-2xl font-semibold">
+        New game
+      </h2>
+      <p className="mt-2 text-sm text-zinc-500">
+        Enter both names. Player X goes first.
+      </p>
       <fieldset disabled={pending} className="mt-5 space-y-4">
         <legend className="sr-only">Player names</legend>
         <div>
-          <label htmlFor="player-x" className="block font-medium">Player X name</label>
-          <input id="player-x" name="playerX" required value={xName} onChange={(event) => setXName(event.target.value)}
+          <label htmlFor="player-x" className="block font-medium">
+            Player X name
+          </label>
+          <input
+            id="player-x"
+            name="playerX"
+            required
+            value={xName}
+            onChange={(event) => setXName(event.target.value)}
             aria-describedby={error ? "new-game-error" : undefined}
-            className="mt-2 w-full rounded-lg border border-zinc-400 bg-background px-3 py-2 disabled:opacity-60" />
+            className="mt-2 w-full rounded-lg border border-zinc-400 bg-background px-3 py-2 disabled:opacity-60"
+          />
         </div>
         <div>
-          <label htmlFor="player-o" className="block font-medium">Player O name</label>
-          <input id="player-o" name="playerO" required value={oName} onChange={(event) => setOName(event.target.value)}
+          <label htmlFor="player-o" className="block font-medium">
+            Player O name
+          </label>
+          <input
+            id="player-o"
+            name="playerO"
+            required
+            value={oName}
+            onChange={(event) => setOName(event.target.value)}
             aria-describedby={error ? "new-game-error" : undefined}
-            className="mt-2 w-full rounded-lg border border-zinc-400 bg-background px-3 py-2 disabled:opacity-60" />
+            className="mt-2 w-full rounded-lg border border-zinc-400 bg-background px-3 py-2 disabled:opacity-60"
+          />
         </div>
-        {error && <p id="new-game-error" role="alert" className="text-red-700 dark:text-red-400">{error}</p>}
+        {error && (
+          <p
+            id="new-game-error"
+            role="alert"
+            className="text-red-700 dark:text-red-400"
+          >
+            {error}
+          </p>
+        )}
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className="rounded-lg bg-foreground px-4 py-2 font-semibold text-background disabled:opacity-60">
+          <button
+            type="submit"
+            className="rounded-lg bg-foreground px-4 py-2 font-semibold text-background disabled:opacity-60 cursor-pointer"
+          >
             {pending ? "Creating game…" : "Create game"}
           </button>
-          <button type="button" onClick={() => {
-            setOpen(false);
-            setXName("");
-            setOName("");
-            setError("");
-          }} className="rounded-lg border border-zinc-400 px-4 py-2 disabled:opacity-60">Cancel</button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setXName("");
+              setOName("");
+              setError("");
+            }}
+            className="rounded-lg border border-zinc-400 px-4 py-2 disabled:opacity-60 cursor-pointer"
+          >
+            Cancel
+          </button>
         </div>
       </fieldset>
     </form>
