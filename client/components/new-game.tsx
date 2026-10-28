@@ -68,57 +68,65 @@ export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
       aria-labelledby="new-game-heading"
       onSubmit={handleSubmit}
       noValidate
-      className="mb-8 rounded-xl border border-zinc-200 p-6 dark:border-zinc-800"
+      className="player-form"
+      aria-busy={pending}
     >
-      <h2 id="new-game-heading" className="text-2xl font-semibold">
+      <p className="player-form-kicker">MEET YOUR MATCH</p>
+      <h2 id="new-game-heading">
         New game
       </h2>
-      <p className="mt-2 text-sm text-zinc-500">
+      <p className="player-form-intro">
         Enter both names. Player X goes first.
       </p>
-      <fieldset disabled={pending} className="mt-5 space-y-4">
+      <fieldset disabled={pending} className="player-form-fields">
         <legend className="sr-only">Player names</legend>
-        <div>
-          <label htmlFor="player-x" className="block font-medium">
+        <div className="player-card player-card-x">
+          <div className="player-card-heading" aria-hidden="true"><span className="player-badge">X</span><span>THE FIRST MOVE</span></div>
+          <label htmlFor="player-x">
             Player X name
           </label>
           <input
             id="player-x"
             name="playerX"
             required
+            placeholder="Enter a name"
             value={xName}
             onChange={(event) => setXName(event.target.value)}
             aria-describedby={error ? "new-game-error" : undefined}
-            className="mt-2 w-full rounded-lg border border-zinc-400 bg-background px-3 py-2 disabled:opacity-60"
+            aria-invalid={!!error && !xName.trim()}
+            className="player-name-input"
           />
         </div>
-        <div>
-          <label htmlFor="player-o" className="block font-medium">
+        <div className="player-card player-card-o">
+          <div className="player-card-heading" aria-hidden="true"><span className="player-badge">O</span><span>THE CHALLENGER</span></div>
+          <label htmlFor="player-o">
             Player O name
           </label>
           <input
             id="player-o"
             name="playerO"
             required
+            placeholder="Enter a name"
             value={oName}
             onChange={(event) => setOName(event.target.value)}
             aria-describedby={error ? "new-game-error" : undefined}
-            className="mt-2 w-full rounded-lg border border-zinc-400 bg-background px-3 py-2 disabled:opacity-60"
+            aria-invalid={!!error && !oName.trim()}
+            className="player-name-input"
           />
         </div>
         {error && (
           <p
             id="new-game-error"
             role="alert"
-            className="text-red-700 dark:text-red-400"
+            className="player-form-error"
           >
             {error}
           </p>
         )}
-        <div className="flex flex-wrap gap-3">
+        <div className="player-form-actions">
           <button
             type="submit"
-            className="rounded-lg bg-foreground px-4 py-2 font-semibold text-background disabled:opacity-60 cursor-pointer"
+            className="player-create-button"
           >
             {pending ? "Creating game…" : "Create game"}
           </button>
@@ -130,7 +138,7 @@ export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
               setOName("");
               setError("");
             }}
-            className="rounded-lg border border-zinc-400 px-4 py-2 disabled:opacity-60 cursor-pointer"
+            className="player-cancel-button"
           >
             Cancel
           </button>
