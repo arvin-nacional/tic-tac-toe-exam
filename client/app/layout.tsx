@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Umbra Digital | Tic-Tac-Toe",
+  title: "Tic-Tac-Toe",
   description: "Tic-Tac-Toe sessions and game results.",
 };
 

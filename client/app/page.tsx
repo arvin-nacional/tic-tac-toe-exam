@@ -28,7 +28,6 @@ export default function Home() {
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8">
       <header className="mb-10 border-b border-zinc-200 pb-8 dark:border-zinc-800">
-        <p className="mb-3 text-sm font-semibold tracking-widest text-zinc-500">UMBRA DIGITAL</p>
         <h1 className="text-4xl font-bold tracking-tight">Tic-Tac-Toe</h1>
         <p className="mt-3 text-zinc-600 dark:text-zinc-400">Past games, friendly rivalries, and every result.</p>
       </header>
