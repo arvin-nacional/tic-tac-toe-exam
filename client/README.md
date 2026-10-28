@@ -47,7 +47,20 @@ pnpm lint
 
 Tests use Vitest, React Testing Library, and jsdom. `pnpm test` runs once; `pnpm test:watch` reruns affected tests as files change. [tests/setup.ts](tests/setup.ts) enables DOM assertions and cleans up rendered components after each test. [Page tests](tests/page.test.tsx) cover history states. [New-game tests](tests/new-game.test.tsx) cover cancellation, validation, trimmed requests, duplicate-submit prevention, confirmation, and retries. HTTP responses are mocked.
 
-Vitest supports synchronous components here. Async Server Components and complete browser journeys will need end-to-end tests separately. These component tests do not start Next.js or call the Express server.
+Vitest supports synchronous components here. These component tests do not start Next.js or call Express. The Playwright test below checks the complete browser journey separately.
+
+## End-to-end test
+
+Install dependencies in both the client and server first. From this directory:
+
+```sh
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+[playwright.config.ts](playwright.config.ts) starts the real Express app on `127.0.0.1:3101` with an isolated temporary MongoDB database, and Next.js development mode on `127.0.0.1:3100`. These ports must be free; existing servers are never reused. The backend test runner does not load `.env` or use a development MongoDB URI. Playwright manages the server processes, and Next.js writes to the ignored `.next-e2e` directory so a normal development build is separate.
+
+[e2e/game.spec.ts](e2e/game.spec.ts) uses Chromium to create a session, play an X win, Continue into a draw, Stop, and reload the page to verify saved history and scores. No HTTP responses are mocked. First-time browser and MongoDB downloads require network access. Failure screenshots and traces are saved under the ignored `test-results` directory. This is a local integration check using Next.js development mode, not deployment or production-build verification.
 
 ## Learn More
 
