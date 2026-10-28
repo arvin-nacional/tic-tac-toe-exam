@@ -56,9 +56,9 @@ export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-8 rounded-lg bg-foreground px-5 py-3 font-semibold text-background focus-visible:outline-2 focus-visible:outline-offset-4 cursor-pointer"
+        className="home-start cursor-pointer"
       >
-        Start New Game
+        Start New Game <span aria-hidden="true">↗</span>
       </button>
     );
   }
