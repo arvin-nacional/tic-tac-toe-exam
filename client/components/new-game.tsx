@@ -1,16 +1,16 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { createSession, type CreatedSession } from "@/lib/api/sessions";
-import GameBoard from "@/components/game-board";
+import { useRouter } from "next/navigation";
+import { createSession } from "@/lib/api/sessions";
 
-export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
+export default function NewGame() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [xName, setXName] = useState("");
   const [oName, setOName] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [session, setSession] = useState<CreatedSession | null>(null);
   const submitting = useRef(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -25,30 +25,13 @@ export default function NewGame({ onCompleted }: { onCompleted?: () => void }) {
     setPending(true);
     setError("");
     try {
-      setSession(await createSession(xName.trim(), oName.trim()));
+      const session = await createSession(xName.trim(), oName.trim());
+      router.push(`/game/${encodeURIComponent(session._id)}`);
     } catch {
       setError("Unable to create game. Please try again.");
-    } finally {
       submitting.current = false;
       setPending(false);
     }
-  }
-
-  if (session) {
-    return (
-      <GameBoard
-        key={session._id}
-        sessionId={session._id}
-        onStopped={() => {
-          setSession(null);
-          setOpen(false);
-          setXName("");
-          setOName("");
-          setError("");
-          onCompleted?.();
-        }}
-      />
-    );
   }
 
   if (!open) {

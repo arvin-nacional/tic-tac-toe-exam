@@ -1,10 +1,16 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import Home from "@/app/page";
+import ActiveGame from "@/components/active-game";
+
+const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 
 const fetchMock = vi.fn();
 const session = { _id: "session-1", players: { X: { name: "Arvin" }, O: { name: "Sam" } } };
 beforeEach(() => {
+  navigation.push.mockReset();
+  navigation.replace.mockReset();
   fetchMock.mockReset();
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [] });
   fetchMock.mockResolvedValue({ ok: true, json: async () => ({
@@ -43,7 +49,7 @@ test.each([["", "Sam"], ["Arvin", ""], ["   ", "Sam"]])("rejects blank names (%s
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-test("submits trimmed names once and displays server-confirmed players", async () => {
+test("submits trimmed names once and navigates to the created session URL", async () => {
   let resolveRequest!: (value: unknown) => void;
   fetchMock.mockReturnValueOnce(new Promise((resolve) => { resolveRequest = resolve; }));
   await openForm();
@@ -59,31 +65,26 @@ test("submits trimmed names once and displays server-confirmed players", async (
     body: JSON.stringify({ players: { X: { name: "Arvin" }, O: { name: "Sam" } } }),
   });
   await act(async () => resolveRequest({ ok: true, json: async () => session }));
-  expect(await screen.findByRole("heading", { name: "Arvin vs Sam" })).toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent("Arvin's turn (X)");
-  expect(screen.getAllByRole("button", { name: /Row/ })).toHaveLength(9);
-  expect(screen.queryByRole("form")).not.toBeInTheDocument();
+  await waitFor(() => expect(navigation.push).toHaveBeenCalledWith("/game/session-1"));
+  // Keep the form locked until Next.js finishes navigating to the game page.
+  expect(screen.getByRole("button", { name: "Creating game…" })).toBeDisabled();
+  fireEvent.submit(form);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(navigation.push).toHaveBeenCalledTimes(1);
 });
 
-test("Stop returns to the home view and reloads completed history", async () => {
+test("Stop returns to the home URL after saving completion", async () => {
   const statistics = { X: { wins: 1, losses: 0, draws: 0 }, O: { wins: 0, losses: 1, draws: 0 } };
-  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => session })
-    .mockResolvedValueOnce({ ok: true, json: async () => ({
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({
       ...session, status: "active", statistics, rounds: [{ result: "X" }],
       currentRound: { number: 1, board: ["X", "X", "X", "O", "O", null, null, null, null], currentPlayer: null, status: "finished" },
     }) })
-    .mockResolvedValueOnce({ ok: true })
-    .mockResolvedValueOnce({ ok: true, json: async () => [{
-      ...session, statistics, roundCount: 1, completedAt: "2026-10-28T05:00:00Z",
-    }] });
-  await openForm();
-  fillNames();
-  fireEvent.submit(screen.getByRole("form", { name: "New game" }));
+    .mockResolvedValueOnce({ ok: true });
+  render(<ActiveGame sessionId="session-1" />);
   fireEvent.click(await screen.findByRole("button", { name: "Stop" }));
-  expect(await screen.findByRole("article")).toHaveTextContent("Arvin vs Sam");
-  expect(screen.getByRole("button", { name: "Start New Game" })).toBeInTheDocument();
-  expect(screen.queryByRole("group", { name: "Tic-Tac-Toe board" })).not.toBeInTheDocument();
-  expect(fetchMock).toHaveBeenLastCalledWith("/api/sessions?status=completed", expect.objectContaining({ cache: "no-store" }));
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/"));
+  expect(fetchMock).toHaveBeenLastCalledWith("/api/sessions/session-1/complete", expect.objectContaining({ method: "POST" }));
 });
 
 test.each(["http", "network"])("preserves names and allows retry after a %s error", async (failure) => {
@@ -94,8 +95,9 @@ test.each(["http", "network"])("preserves names and allows retry after a %s erro
   fillNames();
   fireEvent.submit(screen.getByRole("form", { name: "New game" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Unable to create game. Please try again.");
+  expect(navigation.push).not.toHaveBeenCalled();
   expect(screen.getByLabelText("Player X name")).toHaveValue("Arvin");
   expect(screen.getByLabelText("Player O name")).toHaveValue("Sam");
   fireEvent.submit(screen.getByRole("form", { name: "New game" }));
-  expect(await screen.findByRole("heading", { name: "Arvin vs Sam" })).toBeInTheDocument();
+  await waitFor(() => expect(navigation.push).toHaveBeenCalledWith("/game/session-1"));
 });

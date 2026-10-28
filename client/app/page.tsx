@@ -46,10 +46,7 @@ export default function Home() {
       </header>
 
       <div className="home-game-entry">
-      <NewGame onCompleted={() => {
-        setHistory({ status: "loading" });
-        setAttempt((previous) => previous + 1);
-      }} />
+      <NewGame />
       </div>
 
       <section aria-labelledby="history-heading" className="home-history">
