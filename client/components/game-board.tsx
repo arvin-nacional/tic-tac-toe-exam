@@ -111,7 +111,7 @@ export default function GameBoard({
 
   if (loading)
     return (
-      <p role="status" className="mb-8 p-6">
+      <p role="status" className="arena-loading">
         Loading game…
       </p>
     );
@@ -135,24 +135,29 @@ export default function GameBoard({
 
   return (
     <section
-      className="mb-8 rounded-xl border border-zinc-200 p-6 dark:border-zinc-800"
+      className="game-arena"
       aria-label="Current game"
     >
       {session && round && (
         <>
-          <h2 className="break-words text-2xl font-semibold">
+          <div className="arena-heading">
+          <div><p className="arena-kicker">THE MATCH</p>
+          <h2>
             {session.players.X.name} vs {session.players.O.name}
-          </h2>
-          <p className="mt-2 text-sm text-zinc-500">Round {round.number}</p>
-          <p role="status" className="mt-3 font-medium">
+          </h2></div>
+          <p className="arena-round">Round {round.number}</p>
+          </div>
+          <p role="status" className="arena-status" data-mark={result === "X" || result === "O" ? result : round.currentPlayer ?? "neutral"}>
+            <span className="arena-status-dot" aria-hidden="true" />
             {message}
           </p>
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <caption className="mb-2 text-left font-semibold">
+          <div className="arena-layout">
+          <div className="arena-score-panel">
+            <table className="arena-score-table">
+              <caption>
                 Session scores
               </caption>
-              <thead className="border-b border-zinc-300 dark:border-zinc-700">
+              <thead>
                 <tr>
                   <th scope="col" className="py-2 pr-4">
                     Player
@@ -170,12 +175,12 @@ export default function GameBoard({
               </thead>
               <tbody>
                 {(["X", "O"] as const).map((mark) => (
-                  <tr key={mark}>
+                  <tr key={mark} data-mark={mark} data-active={session.status === "active" && round.currentPlayer === mark}>
                     <th
                       scope="row"
                       className="py-2 pr-4 font-medium break-words"
                     >
-                      {session.players[mark].name} ({mark})
+                      {session.players[mark].name} <span className="arena-player-mark">({mark})</span>
                     </th>
                     <td className="p-2">{session.statistics[mark].wins}</td>
                     <td className="p-2">{session.statistics[mark].losses}</td>
@@ -184,12 +189,13 @@ export default function GameBoard({
                 ))}
               </tbody>
             </table>
+            <p className="arena-score-note">Every round counts.<br />Scores stay with you through each rematch.</p>
           </div>
           <div
             role="group"
             aria-label="Tic-Tac-Toe board"
             aria-busy={pending}
-            className="mx-auto mt-6 grid max-w-xs grid-cols-3 gap-2"
+            className="arena-board"
           >
             {round.board.map((cell, index) => (
               <button
@@ -205,19 +211,21 @@ export default function GameBoard({
                   cell !== null
                 }
                 onClick={() => void play(index)}
-                className="aspect-square rounded-lg border-2 border-zinc-400 text-4xl font-bold enabled:hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default dark:enabled:hover:bg-zinc-800 cursor-pointer"
+                data-mark={cell ?? "empty"}
+                className="arena-cell"
               >
                 {cell}
               </button>
             ))}
           </div>
+          </div>
           {session.status === "active" && round.status === "finished" && (
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <div className="arena-actions">
               <button
                 type="button"
                 disabled={pending || !!error}
                 onClick={() => void finishAction("rounds")}
-                className="rounded-lg bg-foreground px-5 py-2 font-semibold text-background disabled:opacity-50 cursor-pointer"
+                className="arena-primary"
               >
                 Continue
               </button>
@@ -225,7 +233,7 @@ export default function GameBoard({
                 type="button"
                 disabled={pending || !!error}
                 onClick={() => void finishAction("complete")}
-                className="rounded-lg border border-zinc-400 px-5 py-2 disabled:opacity-50 cursor-pointer"
+                className="arena-secondary"
               >
                 Stop
               </button>
@@ -235,7 +243,7 @@ export default function GameBoard({
             <button
               type="button"
               onClick={onStopped}
-              className="mt-6 rounded-lg border border-zinc-400 px-4 py-2 cursor-pointer"
+              className="arena-secondary arena-return"
             >
               Return to history
             </button>
@@ -243,13 +251,13 @@ export default function GameBoard({
         </>
       )}
       {error && (
-        <div className="mt-4">
-          <p role="alert" className="text-red-700 dark:text-red-400">
+        <div className="arena-error">
+          <p role="alert">
             {error}
           </p>
           <button
             type="button"
-            className="mt-3 rounded-lg border border-zinc-400 px-4 py-2 cursor-pointer"
+            className="arena-secondary arena-return"
             onClick={() => {
               busy.current = true;
               setError("");
